@@ -7,19 +7,91 @@ output:
 
 
 ## Loading and preprocessing the data
+```{r}
+getwd()
+setwd("C:\Users\MSingh\coursera\assignment")
+url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+download.file(url, destfile = paste0(getwd(), '/repdata%2Fdata%2Factivity.zip'))
+unzip("repdata%2Fdata%2Factivity.zip",exdir = "data")
+data_act <- read.csv("./data/activity.csv")
 
-
+#### remove NAs
+data_act.RemovedNAs <- data_act[!is.na(data_un$steps), ]
+data_act.RemovedNAs$date <- factor(data_act.RemovedNAs$date)
+```
 
 ## What is mean total number of steps taken per day?
+### 1. compute total number of steps taken each day
+```{r, echo=TRUE}
+StepsTotal <- as.data.frame(tapply(data_act.RemovedNAs$steps, as.factor(data_act.RemovedNAs$date), sum))
+names(StepsTotal) <- c("Steps")
+```
 
-
+```{r, echo=TRUE}
+# Figure1: Plot histogram
+qplot(StepsTotal$Steps, geom="histogram", ylab="Number of Days", xlab="Number of Steps taken each day", color = "blue", binwidth = 100, main = "Daily Steps")
+```
 
 ## What is the average daily activity pattern?
+### 1. Calculate mean and median number of steps taken each day
+```{r, echo=TRUE}
+print(mean(StepsTotal$Steps), row.names = FALSE)
+print(median(StepsTotal$Steps), row.names = FALSE)
+```
 
+### 2. compute 5-minute interval, average number of steps taken, averaged across all days
+```{r, echo=TRUE}
+meanStepInterval <- tapply(data_act.RemovedNAs$steps, as.factor(data_act.RemovedNAs$interval), mean)
+meanStepsInterval <- as.data.frame(meanStepsInterval)
+meanStepsInterval$interval <- rownames(meanStepsInterval)
+```
 
+```{r, echo=TRUE}
+# Figure2: time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+plot(meanStepsInterval$interval, meanStepsInterval$mean, type = 'l', ylab = "Mean Steps", xlab = "Interval", main = "Average Number of Steps Taken")
+```
 
 ## Imputing missing values
+```{r, echo=TRUE}
+# total number of missing values in the dataset
+nrow(data_act[is.na(data_act$steps), ])
 
+# For all data points with NA steps, impute the average number of steps for that interval.
+meanStepsInterval$interval <- as.integer(meanStepsInterval$interval)
+data_act.imp <- merge(data_act, meanStepsInterval, by = "interval")
+data_act.imp$steps[is.na(data_act.imp$steps)] <- data_act.imp$meanStepsInterval[is.na(data_act.imp$steps)]
+```
+###. compute total number of steps taken each day after missing values are imputed
+```{r, echo=TRUE}
+StepsTotal.imp <- as.data.frame(tapply(data_act.imp$steps, as.factor(data_act.imp$date), sum))
+names(StepsTotal.imp) <- c("Steps")
+```
 
+```{r PA1_template_Fig3, echo=TRUE}
+# Figure3: Histogram of the total number of steps taken each day
+qplot(StepsTotal.imp$Steps, geom="histogram", ylab="Number of Days", xlab="Number of Steps", binwidth = 1000, main = "StepsbyDay")
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+### 1. compute average number of steps taken per 5-minute interval across weekdays and weekends
+
+```{r PA1_template_Step9, echo=TRUE}
+StepsTotal <- data.table::fread(input = "./data/activity.csv")
+StepsTotal[, date := as.POSIXct(date, format = "%Y-%m-%d")]
+StepsTotal[, `Day of Week`:= weekdays(x = date)]
+StepsTotal[grepl(pattern = "Monday|Tuesday|Wednesday|Thursday|Friday", x = `Day of Week`), "weekday or weekend"] <- "weekday"
+StepsTotal[grepl(pattern = "Saturday|Sunday", x = `Day of Week`), "weekday or weekend"] <- "weekend"
+StepsTotal[, 'weekday or weekend' := as.factor('weekday or weekend')]
+head(StepsTotal, 10)
+```
+
+## 9. Make a panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
+```{r PA1_template_Step10, echo=TRUE}
+StepsTotal[is.na(steps), "steps"] <- StepsTotal[, c(lapply(.SD, median, na.rm = TRUE)), .SDcols = c("steps")]
+IntervalTotalSteps <- StepsTotal[, c(lapply(.SD, mean, na.rm = TRUE)), .SDcols = c("steps"), by = .(interval, `weekday or weekend`)]
+```
+
+```{r PA1_template_Fig4, echo=TRUE}
+# Figure 4: make panel plot
+ggplot(IntervalTotalSteps , aes(x = interval , y = steps, color=`weekday or weekend`)) + geom_line() + labs(title = "Avg. Daily Steps by Weektype", x = "Interval", y = "No. of Steps") + facet_wrap(~`weekday or weekend` , ncol = 1, nrow=2)
+```
