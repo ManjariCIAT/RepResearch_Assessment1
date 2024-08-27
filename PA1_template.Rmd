@@ -1,22 +1,30 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research PA1"
+author: "Manjari singh"
+date: "2024-08-27"
+output: html_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 
 ## Loading and preprocessing the data
 ```{r}
-getwd()
-setwd("C:\Users\MSingh\coursera\assignment")
+setwd("C:/Users/MSingh/coursera/assignment")
+#getwd()
 url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
 download.file(url, destfile = paste0(getwd(), '/repdata%2Fdata%2Factivity.zip'))
 unzip("repdata%2Fdata%2Factivity.zip",exdir = "data")
 data_act <- read.csv("./data/activity.csv")
 
 #### remove NAs
-data_act.RemovedNAs <- data_act[!is.na(data_un$steps), ]
+data_act.RemovedNAs <- data_act[!is.na(data_act$steps), ]
 data_act.RemovedNAs$date <- factor(data_act.RemovedNAs$date)
 ```
 
@@ -29,7 +37,8 @@ names(StepsTotal) <- c("Steps")
 
 ```{r, echo=TRUE}
 # Figure1: Plot histogram
-qplot(StepsTotal$Steps, geom="histogram", ylab="Number of Days", xlab="Number of Steps taken each day", color = "blue", binwidth = 100, main = "Daily Steps")
+require(ggplot2)
+qplot(StepsTotal$Steps, geom="histogram", ylab="Number of Days", xlab="Number of Steps", color = "red", binwidth = 1000, main = "Daily Steps")
 ```
 
 ## What is the average daily activity pattern?
@@ -41,14 +50,17 @@ print(median(StepsTotal$Steps), row.names = FALSE)
 
 ### 2. compute 5-minute interval, average number of steps taken, averaged across all days
 ```{r, echo=TRUE}
-meanStepInterval <- tapply(data_act.RemovedNAs$steps, as.factor(data_act.RemovedNAs$interval), mean)
+meanStepsInterval <- tapply(data_act.RemovedNAs$steps, as.factor(data_act.RemovedNAs$interval), mean)
 meanStepsInterval <- as.data.frame(meanStepsInterval)
 meanStepsInterval$interval <- rownames(meanStepsInterval)
 ```
 
+
+
 ```{r, echo=TRUE}
 # Figure2: time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
-plot(meanStepsInterval$interval, meanStepsInterval$mean, type = 'l', ylab = "Mean Steps", xlab = "Interval", main = "Average Number of Steps Taken")
+require(ggplot2)
+qplot(meanStepsInterval$interval, meanStepsInterval$mean, type = 'l', ylab = "Mean Steps", xlab = "Interval", main = "Average Number of Steps Taken")
 ```
 
 ## Imputing missing values
@@ -69,6 +81,7 @@ names(StepsTotal.imp) <- c("Steps")
 
 ```{r PA1_template_Fig3, echo=TRUE}
 # Figure3: Histogram of the total number of steps taken each day
+require(ggplot2)
 qplot(StepsTotal.imp$Steps, geom="histogram", ylab="Number of Days", xlab="Number of Steps", binwidth = 1000, main = "StepsbyDay")
 ```
 
@@ -93,5 +106,6 @@ IntervalTotalSteps <- StepsTotal[, c(lapply(.SD, mean, na.rm = TRUE)), .SDcols =
 
 ```{r PA1_template_Fig4, echo=TRUE}
 # Figure 4: make panel plot
+require(ggplot2)
 ggplot(IntervalTotalSteps , aes(x = interval , y = steps, color=`weekday or weekend`)) + geom_line() + labs(title = "Avg. Daily Steps by Weektype", x = "Interval", y = "No. of Steps") + facet_wrap(~`weekday or weekend` , ncol = 1, nrow=2)
 ```
